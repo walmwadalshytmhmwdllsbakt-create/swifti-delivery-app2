@@ -1,6 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'admin_screen.dart';
+import 'profile_screen.dart';
 
-void main() {
+void main() async {
+  // ضمان تهيئة محركات فلاتر قبل الاتصال بالخدمات
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  // تهيئة اتصال فايربيز مع التطبيق
+  await Firebase.initializeApp();
+
   runApp(const SwiftiApp());
 }
 
@@ -11,40 +20,63 @@ class SwiftiApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'سويفتي | Swifti',
+      title: 'Swifti Delivery',
       theme: ThemeData(
-        primaryColor: const Color(0xFF007A3D), // الأخضر الأساسي
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF007A3D),
-          primary: const Color(0xFF007A3D),      // أخضر
-          secondary: const Color(0xFFCE1126),    // أحمر
-          tertiary: Colors.black,               // أسود
-        ),
-        scaffoldBackgroundColor: Colors.white,
-        appBarTheme: const AppBarTheme(
-          backgroundColor: Color(0xFF007A3D),
-          foregroundColor: Colors.white,
-        ),
+        primarySwatch: Colors.blue,
+        useMaterial3: true,
       ),
-      home: const MainScreen(),
+      home: const MainHomeWrapper(),
     );
   }
 }
 
-class MainScreen extends StatelessWidget {
-  const MainScreen({super.key});
+class MainHomeWrapper extends StatelessWidget {
+  const MainHomeWrapper({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('سويفتي | Swifti'),
+        title: const Text('Swifti Delivery - سويفتي'),
         centerTitle: true,
       ),
-      body: const Center(
-        child: Text(
-          'مرحباً بك في تطبيق سويفتي',
-          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(
+              Icons.check_circle_outline,
+              size: 80,
+              color: Colors.green,
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'تم ربط تطبيق سويفتي بـ Firebase بنجاح!',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const AdminScreen()),
+                );
+              },
+              icon: const Icon(Icons.admin_panel_settings),
+              label: const Text('الانتقال إلى شاشة الإدارة (Admin)'),
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const ProfileScreen()),
+                );
+              },
+              icon: const Icon(Icons.person),
+              label: const Text('الانتقال إلى الملف الشخصي (Profile)'),
+            ),
+          ],
         ),
       ),
     );
