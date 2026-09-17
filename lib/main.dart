@@ -1,134 +1,121 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'admin_screen.dart';
-import 'profile_screen.dart';
-
-// متحكم بسيط للتبديل بين اللغتين (العربية والإنجليزية)
-class LanguageController extends ChangeNotifier {
-  Locale _locale = const Locale('ar'); // اللغة الافتراضية: العربية
-  Locale get locale => _locale;
-
-  void toggleLanguage() {
-    if (_locale.languageCode == 'ar') {
-      _locale = const Locale('en');
-    } else {
-      _locale = const Locale('ar');
-    }
-    notifyListeners();
-  }
-}
-
-final languageController = LanguageController();
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
-  runApp(const SwiftiApp());
+  runApp(const SwivelApp());
 }
 
-class SwiftiApp extends StatefulWidget {
-  const SwiftiApp({super.key});
-
-  @override
-  State<SwiftiApp> createState() => _SwiftiAppState();
-}
-
-class _SwiftiAppState extends State<SwiftiApp> {
-  @override
-  void initState() {
-    super.initState();
-    languageController.addListener(() {
-      setState(() {});
-    });
-  }
+class SwivelApp extends StatelessWidget {
+  const SwivelApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final isArabic = languageController.locale.languageCode == 'ar';
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      locale: languageController.locale,
-      title: isArabic ? 'تطبيق سويفتي للتوصيل' : 'Swifti Delivery',
+      title: 'Swivel Delivery',
       theme: ThemeData(
-        primarySwatch: Colors.blue,
-        useMaterial3: true,
+        primarySwatch: Colors.green,
+        fontFamily: 'Cairo',
       ),
-      home: const MainHomeWrapper(),
+      home: const OrderHomeScreen(),
     );
   }
 }
 
-class MainHomeWrapper extends StatelessWidget {
-  const MainHomeWrapper({super.key});
+class OrderHomeScreen extends StatefulWidget {
+  const OrderHomeScreen({super.key});
+
+  @override
+  State<OrderHomeScreen> createState() => _OrderHomeScreenState();
+}
+
+class _OrderHomeScreenState extends State<OrderHomeScreen> {
+  final TextEditingController _orderController = TextEditingController();
+  bool _isLoading = false;
+
+  // دالة لإرسال الطلب إلى قاعدة بيانات Firebase Firestore
+  Future<void> _sendOrder() async {
+    if (_orderController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('الرجاء إدخال تفاصيل الطلب أولاً')),
+      );
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      // حفظ الطلب في مجموعة orders داخل Firestore
+      await FirebaseFirestore.instance.collection('orders').add({
+        'details': _orderController.text.trim(),
+        'status': 'قيد الانتظار',
+        'timestamp': FieldValue.serverTimestamp(),
+      });
+
+      _orderController.clear();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('تم إرسال الطلب بنجاح إلى سويفل!')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('حدث خطأ أثناء الإرسال: $e')),
+      );
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final isArabic = languageController.locale.languageCode == 'ar';
-
     return Scaffold(
       appBar: AppBar(
-        title: Text(isArabic ? 'سويفتي للتوصيل - Swifti Delivery' : 'Swifti Delivery'),
-        centerTitle: true,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.language),
-            tooltip: isArabic ? 'Switch to English' : 'التحويل إلى العربية',
-            onPressed: () {
-              languageController.toggleLanguage();
-            },
-          ),
-        ],
+        title: const Text('Swivel Delivery | سويفل للتوصيل'),
+        backgroundColor: Colors.green[700],
       ),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(
-                Icons.check_circle_outline,
-                size: 80,
-                color: Colors.green,
+      body: Padding(
+        padding: const EdgeInsets.all(20.0),
+        عضو: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Text(
+              'أهلاً بك في نظام سويفل للتوصيل',
+              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 20),
+            TextField(
+              controller: _orderController,
+              decoration: const InputDecoration(
+                labelText: 'تفاصيل طلب التوصيل (مثال: توصيل طرد إلى حي البستان)',
+                border: OutlineInputBorder(),
               ),
-              const SizedBox(height: 16),
-              Text(
-                isArabic
-                    ? 'تم ربط تطبيق سويفتي بـ Firebase بنجاح!'
-                    : 'Swifti App successfully connected to Firebase!',
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 8),
-              Text(
-                isArabic
-                    ? 'يمكنك تبديل اللغة من أيقونة الكرة الأرضية في الأعلى'
-                    : 'You can switch language using the globe icon above',
-                style: const TextStyle(fontSize: 14, color: Colors.grey),
-              ),
-              const SizedBox(height: 24),
-              ElevatedButton.icon(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const AdminScreen()),
-                  );
-                },
-                icon: const Icon(Icons.admin_panel_settings),
-                label: Text(isArabic ? 'الانتقال إلى شاشة الإدارة (Admin)' : 'Go to Admin Screen'),
-              ),
-              const SizedBox(height: 12),
-              OutlinedButton.icon(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const ProfileScreen()),
-                  );
-                },
-                icon: const Icon(Icons.person),
-                label: Text(isArabic ? 'الانتقال إلى الملف الشخصي (Profile)' : 'Go to Profile Screen'),
-              ),
-            ],
-          ),
+              maxLines: 3,
+            ),
+            const SizedBox(height: 20),
+            _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green[700],
+                    padding: const EdgeInsets.symmetric(vertical: 15),
+                  ).let((_) => ElevatedButton(
+                      onPressed: _sendOrder,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green[700],
+                        padding: const EdgeInsets.symmetric(vertical: 15),
+                      ),
+                      child: const Text(
+                        'إرسال الطلب',
+                        style: TextStyle(fontSize: 18, color: Colors.white),
+                      ),
+                    )),
+          ],
         ),
       ),
     );
